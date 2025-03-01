@@ -71,7 +71,10 @@ const PowersBitmask = {
     ExtendedDroneLaunch: 0x002000,
     SudranKey: 0x004000,
     RedCoat: 0x008000,
-    PasswordTool: 0x010000
+    PasswordTool: 0x010000,
+    LongKilver: 0x020000,  // If you have a long range weapon that passes through walls
+    FatBeam: 0x040000,  // If you have the Fat Beam weapon specifically, which AFAIK, can activate switches off-screen
+    TeleReset: 0x080000,  // If you have an item that allows you to reset the drone cooldown after teleporting to the drone's location
 }
 
 // Enum for difficulties
@@ -132,7 +135,6 @@ window.addEventListener("load", (event) => {
 
 // Update tracker data
 function UpdateTracker(data) {
-    console.log(data)
     ClearTracker();
 
     currentPowers = data["CurrentPowers"];

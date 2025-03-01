@@ -82,11 +82,11 @@ th > img {
 }
 
 .itemUncollected {
-    filter: grayscale(1);
+    filter: grayscale(1) brightness(0.5);
 }
 
 .itemCollected {
-    filter: grayscale(0);
+    filter: grayscale(0)  brightness(1);
 }
 
 #connectionStatus {
