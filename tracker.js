@@ -49,6 +49,8 @@ const powerNodeFragmentsText = document.getElementById("icoPowerNodeFragment").g
 const rangeNodesText = document.getElementById("icoRangeNode").getElementsByClassName("collectCounter")[0];
 const sizeNodesText = document.getElementById("icoSizeNode").getElementsByClassName("collectCounter")[0];
 
+const requiredPowersList = document.getElementById("requiredPowersList");
+
 // HTML elements for "Connected/Disconnected" display
 const disconnected = '<p class="disconnected">Disconnected</p>'
 const connected = '<p class="connected">Connected</p>'
@@ -75,6 +77,31 @@ const PowersBitmask = {
     LongKilver: 0x020000,  // If you have a long range weapon that passes through walls
     FatBeam: 0x040000,  // If you have the Fat Beam weapon specifically, which AFAIK, can activate switches off-screen
     TeleReset: 0x080000,  // If you have an item that allows you to reset the drone cooldown after teleporting to the drone's location
+}
+
+// Names for each notable powerup used in tracker UI
+const PowersNames = {
+    None: "None",
+    Gun: "Gun",
+    Nova: "Nova",
+    Drill: "Drill",
+    Kilver: "Kilver",
+    AddressDisruptor1: "Address Disruptor 1",
+    HighJump: "High Jump",
+    Labcoat: "Lab Coat",
+    Drone: "Drone",
+    AddressDisruptor2: "Address Disruptor 2",
+    Grapple: "Grapple",
+    Trenchcoat: "Trenchcoat",
+    AddressBomb: "Address Bomb",
+    DroneTeleport: "Drone Teleport",
+    ExtendedDroneLaunch: "Extended Drone Launch",
+    SudranKey: "Sudran Key",
+    RedCoat: "Red Coat",
+    Password: "Password Tool",
+    LongKilver: "Long Kilver",
+    FatBeam: "Fat Beam",
+    TeleReset: "Teleport Reset",
 }
 
 // Enum for difficulties
@@ -115,6 +142,9 @@ let powerNodeFragments = 0;
 let rangeNodes = 0;
 let sizeNodes = 0;
 let currentPowers = 0;
+
+// Copy of the latest "LocationsData" used to check required items to acquire
+let locationsData = [];
 
 // Check if websocket is open
 const connectionStatusCheck = setInterval(() => {
@@ -168,6 +198,8 @@ function UpdateTracker(data) {
     rangeNodesIcon.classList.value = rangeNodes > 0 ? "itemCollected" : "itemUncollected"
     sizeNodesIcon.classList.value = sizeNodes > 0 ? "itemCollected" : "itemUncollected"
 
+    locationsData = data["LocationsData"]
+
     for(const i of data["Items"]) {
         const target = document.getElementById(`ico${i["mName"]}`);
 
@@ -176,7 +208,7 @@ function UpdateTracker(data) {
         }
     }
 
-    for(const i of data["LocationsData"]) {
+    for(const i of locationsData) {
         if(!isVisionDead && HallucinationNonExistentItemIds.includes(i["LocationId"])) {
             continue;
         }
@@ -279,4 +311,46 @@ function CheckAvailable(location, progression) {
 // location is item from "LocationsData"
 function CheckAvailableHallucination(location) {
     return BaseCheck(location, ProgressionRequiredPowersHallucination);
+}
+
+function listRequiredItems(id, event) {
+    event.stopPropagation();
+
+    const item = locationsData.find(x => x["VanillaItemName"] === id)
+    const requiredList = [];
+
+    if(locationsData.length > 0) {
+        if(item["RequiredPowersString"] !== null && item["RequiredPowersString"].length > 0) {
+            for(const d of item["RequiredPowersString"]) {
+                requiredList.push(`<p>- ${RenameArrayItems(d).join(", ")}</p>`);
+            }
+        }
+        if(!isVisionDead && item["RequiredPowersStringHallucination"] !== null && item["RequiredPowersStringHallucination"].length > 0) {
+            for(const h of item["RequiredPowersStringHallucination"]) {
+                requiredList.push(`<p>- ${RenameArrayItems(h).join(", ")}</p>`);
+            }
+        }
+        if(progressionMode >= 1 && item["RequiredPowersStringAdvanced"] !== null && item["RequiredPowersStringAdvanced"].length > 0) {
+            for(const a of item["RequiredPowersStringAdvanced"]) {
+                requiredList.push(`<p>- ${RenameArrayItems(a).join(", ")}</p>`);
+            }
+        }
+        if(progressionMode === 2 && item["RequiredPowersStringMasochist"] !== null && item["RequiredPowersStringMasochist"].length > 0) {
+            for(const m of item["RequiredPowersStringMasochist"]) {
+                requiredList.push(`<p>- ${RenameArrayItems(m).join(", ")}</p>`);
+            }
+        }
+    }
+
+    requiredPowersList.innerHTML = requiredList.join("");
+}
+
+function RenameArrayItems(array) {
+    const result = [];
+
+    for(const s of array) {
+        result.push(PowersNames[s]);
+    }
+
+    return result;
 }

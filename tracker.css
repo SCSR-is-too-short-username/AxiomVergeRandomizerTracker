@@ -95,6 +95,12 @@ th > img {
     left: 16px;
 }
 
+#requiredPowers {
+    position: absolute;
+    top: 248px;
+    left: 888px;
+}
+
 .disconnected {
     color: #e00000;
 }
