@@ -6,8 +6,8 @@ Map and item tracker for Axiom Verge's randomizer mode. It uses an SDK built int
 ### Features
 - Stat display for seed, personal best, difficulty and progression mode
 - Item tracker showing collected items and upgrades
-- World map that displays item locations and whether the player can aquire the item with current equipment
-- Clicking a map marker displays the equipment combinations required to aquire the item relevant for the current progression mode
+- World map that displays item locations and whether the player can acquire the item with current equipment
+- Clicking a map marker displays the equipment combinations required to acquire the item relevant for the current progression mode
 
 ![Readme Image](readme-image.png)
 
