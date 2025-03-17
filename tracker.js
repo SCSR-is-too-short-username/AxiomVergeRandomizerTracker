@@ -1,24 +1,17 @@
 const websocketUrl = "ws://localhost:19906/"
 let websocket = undefined;
 
-// Map HTML element
-const map = document.getElementById("map");
+// Pixel size of map square
+// Coordinates in itemData.js are in grid units and are
+// multiplied by this value to get the absolute position
+const mapGridSize = 12;
 
-// List of HTML elements for each area
-const areas = [
-    document.getElementById("area1"),
-    document.getElementById("area2"),
-    document.getElementById("area3"),
-    document.getElementById("area4"),
-    document.getElementById("area5"),
-    document.getElementById("area6"),
-    document.getElementById("area7"),
-    document.getElementById("area8"),
-    document.getElementById("area9"),
-];
+// Map and tracker boc HTML element
+const map = document.getElementById("map");
+const trackerBox = document.getElementById("itemTrackerBox");
 
 // List of HTML elements of item icons on the map
-const items = document.getElementsByClassName("item");
+let items = [];
 
 // Item tracker icons and numeric displays HTML elements
 const trackerIcons = document.getElementsByClassName("itemIcon");
@@ -34,50 +27,30 @@ const difficultyText = document.getElementById("difficultyText");
 const progressionText = document.getElementById("progressionText");
 
 // Icons for powerups
-const healthNodesIcon = document.getElementById("icoHealthNode").getElementsByTagName("img")[0];
-const healthNodeFragmentsIcon = document.getElementById("icoHealthNodeFragment").getElementsByTagName("img")[0];
-const powerNodesIcon = document.getElementById("icoPowerNode").getElementsByTagName("img")[0];
-const powerNodeFragmentsIcon = document.getElementById("icoPowerNodeFragment").getElementsByTagName("img")[0];
-const rangeNodesIcon = document.getElementById("icoRangeNode").getElementsByTagName("img")[0];
-const sizeNodesIcon = document.getElementById("icoSizeNode").getElementsByTagName("img")[0];
+let healthNodesIcon = undefined;
+let healthNodeFragmentsIcon = undefined;
+let powerNodesIcon = undefined;
+let powerNodeFragmentsIcon = undefined;
+let rangeNodesIcon = undefined;
+let sizeNodesIcon = undefined;
 
 // Numerical indicators for powerups
-const healthNodesText = document.getElementById("icoHealthNode").getElementsByClassName("collectCounter")[0];
-const healthNodeFragmentsText = document.getElementById("icoHealthNodeFragment").getElementsByClassName("collectCounter")[0];
-const powerNodesText = document.getElementById("icoPowerNode").getElementsByClassName("collectCounter")[0];
-const powerNodeFragmentsText = document.getElementById("icoPowerNodeFragment").getElementsByClassName("collectCounter")[0];
-const rangeNodesText = document.getElementById("icoRangeNode").getElementsByClassName("collectCounter")[0];
-const sizeNodesText = document.getElementById("icoSizeNode").getElementsByClassName("collectCounter")[0];
+let healthNodesText = undefined;
+let healthNodeFragmentsText = undefined;
+let powerNodesText = undefined;
+let powerNodeFragmentsText = undefined;
+let rangeNodesText = undefined;
+let sizeNodesText = undefined;
 
+// Required Powers HTML element
 const requiredPowersList = document.getElementById("requiredPowersList");
 
 // HTML elements for "Connected/Disconnected" display
 const disconnected = '<p class="disconnected">Disconnected</p>'
 const connected = '<p class="connected">Connected</p>'
 
-// Bitmask values for each notable powerup that affect progression
-const PowersBitmask = {
-    Gun: 0x000001,
-    Nova: 0x000002,
-    Drill: 0x000004,
-    Kilver: 0x000008,
-    AddressDisruptor1: 0x000010,
-    HighJump: 0x000020,
-    LabCoat: 0x000040,
-    Drone: 0x000080,
-    AddressDisruptor2: 0x000100,
-    Grapple: 0x000200,
-    Trenchcoat: 0x000400,
-    AddressBomb: 0x000800,
-    DroneTeleport: 0x001000,
-    ExtendedDroneLaunch: 0x002000,
-    SudranKey: 0x004000,
-    RedCoat: 0x008000,
-    PasswordTool: 0x010000,
-    LongKilver: 0x020000,  // If you have a long range weapon that passes through walls
-    FatBeam: 0x040000,  // If you have the Fat Beam weapon specifically, which AFAIK, can activate switches off-screen
-    TeleReset: 0x080000,  // If you have an item that allows you to reset the drone cooldown after teleporting to the drone's location
-}
+// Child element of map marker
+const mapMarkerChild = '<div class="locked"></div>'
 
 // Names for each notable powerup used in tracker UI
 const PowersNames = {
@@ -157,7 +130,10 @@ const connectionStatusCheck = setInterval(() => {
 }, 2500);
 
 // Setup event listener for when Axiom Verge sends data through the websocket
-window.addEventListener("load", (event) => {
+window.addEventListener("load", () => {
+    InitializeMapMarkers()
+    InitializeTrackerItems()
+
     ClearTracker();
     websocket = new WebSocket(websocketUrl);
     websocket.onmessage = event => UpdateTracker(JSON.parse(event.data));
@@ -313,6 +289,7 @@ function CheckAvailableHallucination(location) {
     return BaseCheck(location, ProgressionRequiredPowersHallucination);
 }
 
+// Create a list of items required to get to selected item location
 function listRequiredItems(id, event) {
     event.stopPropagation();
 
@@ -345,6 +322,7 @@ function listRequiredItems(id, event) {
     requiredPowersList.innerHTML = requiredList.join("");
 }
 
+// Rename required powers array items to the human-readable names
 function RenameArrayItems(array) {
     const result = [];
 
@@ -353,4 +331,81 @@ function RenameArrayItems(array) {
     }
 
     return result;
+}
+
+// Populate map markers to HTML
+// Data is stored in itemData.js
+function InitializeMapMarkers() {
+    for(const i of itemData) {
+        const p = document.createElement("div");
+
+        p.className = "item";
+        p.title = `Vanilla: ${i["title"]}`
+        p.id = i["id"];
+        p.style.setProperty("position", "absolute");
+        p.style.setProperty("top", `${i["top"] * mapGridSize}px`);
+        p.style.setProperty("left", `${i["left"] * mapGridSize}px`);
+        p.onclick = function(event) {listRequiredItems(this.id, event)}
+        p.innerHTML = mapMarkerChild;
+        map.appendChild(p);
+    }
+
+    items = document.getElementsByClassName("item");
+}
+
+// Populate item tracker table to HTML
+// Data is stored in trackerItems.js
+function InitializeTrackerItems() {
+    const table = document.createElement("table");
+
+    for(const o of trackerItems) {
+        const tr = document.createElement("tr");
+
+        for(const i of o) {
+            const th = document.createElement("th");
+            const img = document.createElement("img");
+            let p = undefined;
+
+            img.className = "itemUncollected"
+            img.src = i["src"]
+            img.alt = ""
+
+            th.id = i["id"];
+            th.className = "itemIcon"
+
+            if(i["hasCount"]) {
+                th.classList.add("itemsCounted")
+
+                p = document.createElement("p");
+                p.className = "collectCounter"
+                p.innerText = "0";
+            }
+
+            th.appendChild(img);
+
+            if(p !== undefined) {
+                th.appendChild(p);
+            }
+
+            tr.appendChild(th);
+        }
+
+        table.appendChild(tr);
+    }
+
+    trackerBox.appendChild(table);
+
+    healthNodesIcon = document.getElementById("icoHealthNode").getElementsByTagName("img")[0];
+    healthNodeFragmentsIcon = document.getElementById("icoHealthNodeFragment").getElementsByTagName("img")[0];
+    powerNodesIcon = document.getElementById("icoPowerNode").getElementsByTagName("img")[0];
+    powerNodeFragmentsIcon = document.getElementById("icoPowerNodeFragment").getElementsByTagName("img")[0];
+    rangeNodesIcon = document.getElementById("icoRangeNode").getElementsByTagName("img")[0];
+    sizeNodesIcon = document.getElementById("icoSizeNode").getElementsByTagName("img")[0];
+
+    healthNodesText = document.getElementById("icoHealthNode").getElementsByClassName("collectCounter")[0];
+    healthNodeFragmentsText = document.getElementById("icoHealthNodeFragment").getElementsByClassName("collectCounter")[0];
+    powerNodesText = document.getElementById("icoPowerNode").getElementsByClassName("collectCounter")[0];
+    powerNodeFragmentsText = document.getElementById("icoPowerNodeFragment").getElementsByClassName("collectCounter")[0];
+    rangeNodesText = document.getElementById("icoRangeNode").getElementsByClassName("collectCounter")[0];
+    sizeNodesText = document.getElementById("icoSizeNode").getElementsByClassName("collectCounter")[0];
 }
